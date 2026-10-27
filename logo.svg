@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 72" role="img" aria-labelledby="title desc">
+  <title id="title">BoyDiop Technologie</title>
+  <desc id="desc">Logo vert représentant les initiales BD et une orbite numérique</desc>
+  <defs><linearGradient id="green" x1="0" x2="1" y1="1" y2="0"><stop offset="0" stop-color="#075b35"/><stop offset="1" stop-color="#62d20a"/></linearGradient></defs>
+  <g fill="none" stroke="url(#green)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 16h16c12 0 18 16 5 21 16 4 11 19-4 19H16V16Z" stroke-width="7"/>
+    <path d="M16 29h15M16 40h14M16 51h15" stroke-width="4"/>
+    <circle cx="65" cy="29" r="3" fill="#62d20a" stroke-width="3"/><circle cx="65" cy="40" r="3" fill="#62d20a" stroke-width="3"/><circle cx="65" cy="51" r="3" fill="#62d20a" stroke-width="3"/>
+    <path d="M75 16c18-7 38 1 43 18 5 17-7 32-26 34-18 2-35-7-39-22" stroke-width="7"/><ellipse cx="92" cy="36" rx="38" ry="10" transform="rotate(-18 92 36)" stroke-width="3"/>
+  </g>
+  <text x="132" y="35" fill="#075b35" font-family="Arial, sans-serif" font-size="21" font-weight="800">BoyDiop</text>
+  <text x="133" y="54" fill="#35a709" font-family="Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="2">TECHNOLOGIE</text>
+</svg>
