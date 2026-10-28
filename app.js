@@ -3,7 +3,7 @@
   var SINGLE = !!window.SINGLE;
   var K = ['html', 'css', 'javascript', 'php', 'projet'];
   var COLORS = { html: '#e86a3a', css: '#3478e5', javascript: '#d49b00', php: '#7567bd', projet: '#168342' };
-  var ICONS = { html: '</>', css: '{}', javascript: 'JS', php: '₱', projet: '✦' };
+  var ICONS = { html: '</>', css: '{}', javascript: 'JS', php: '<?', projet: '✦' };
   var route = SINGLE ? (location.hash.slice(1) || 'index') : window.PAGE;
   var current = {};
   var done = {};
@@ -27,54 +27,253 @@
   function go(page) { route = page; if (SINGLE) { try { location.hash = page; } catch (error) {} } render(); window.scrollTo(0, 0); }
   window.addEventListener('hashchange', function () { if (!SINGLE) return; var page = location.hash.slice(1) || 'index'; if (page !== route) { route = page; render(); } });
 
+  var MOTION = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var heroTimer = null, revealObserver = null;
+  if (MOTION) document.documentElement.classList.add('motion');
+  window.addEventListener('scroll', function () { document.documentElement.classList.toggle('is-scrolled', window.scrollY > 8); }, { passive: true });
+
+  var ICON_PATHS = {
+    arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+    phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2Z"/>',
+    mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+    book: '<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>',
+    code: '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
+    rocket: '<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1zM12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/>',
+    up: '<path d="M12 19V5M5 12l7-7 7 7"/>'
+  };
+  function icon(name, className) {
+    var span = el('span', 'icon' + (className ? ' ' + className : '')); span.setAttribute('aria-hidden', 'true');
+    span.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_PATHS[name] + '</svg>';
+    return span;
+  }
+  function cap(text) { return text.charAt(0).toUpperCase() + text.slice(1); }
+
   function top(page, home) {
     var bar = el('header', 'topbar' + (home ? ' topbar-home' : ' topbar-course'));
-    var brand = link('index', '', 'brand');
-    var logo = el('img', 'brand-logo'); logo.src = 'logo.svg'; logo.alt = 'BoyDiop Technologie';
+    var skip = el('a', 'skip-link', 'Aller au contenu'); skip.href = '#contenu'; bar.appendChild(skip);
+    var brand = link('index', '', 'brand'); brand.setAttribute('aria-label', 'Atelier Web, accueil');
+    var mark = el('span', 'brand-mark'), logo = el('img', 'brand-logo'); logo.src = 'logo.svg'; logo.alt = ''; mark.appendChild(logo);
     var brandText = el('span', 'brand-text'); brandText.appendChild(el('strong', '', 'Atelier Web')); brandText.appendChild(el('small', '', 'Apprendre le numérique'));
-    brand.appendChild(logo); brand.appendChild(brandText); bar.appendChild(brand);
-    var menu = el('button', 'menu-toggle', 'Menu'); menu.type = 'button'; menu.setAttribute('aria-expanded', 'false'); menu.setAttribute('aria-controls', 'site-links'); bar.appendChild(menu);
+    brand.appendChild(mark); brand.appendChild(brandText); bar.appendChild(brand);
+    var menu = el('button', 'menu-toggle'); menu.type = 'button'; menu.setAttribute('aria-expanded', 'false'); menu.setAttribute('aria-controls', 'site-links'); menu.setAttribute('aria-label', 'Ouvrir le menu'); menu.appendChild(el('span', 'menu-lines')); bar.appendChild(menu);
     var links = el('nav', 'top-links'); links.id = 'site-links'; links.setAttribute('aria-label', 'Navigation principale');
     K.forEach(function (key) { var anchor = link(key, C[key].name); if (key === page) anchor.setAttribute('aria-current', 'page'); links.appendChild(anchor); });
     links.appendChild(sectionLink('about', 'À propos'));
     links.appendChild(sectionLink('contact', 'Contact'));
     if (home) links.appendChild(link('html', 'Commencer', 'nav-cta'));
     bar.appendChild(links);
-    menu.onclick = function () { var open = links.classList.toggle('is-open'); menu.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+    function setOpen(open) { links.classList.toggle('is-open', open); bar.classList.toggle('menu-open', open); menu.setAttribute('aria-expanded', open ? 'true' : 'false'); menu.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu'); }
+    menu.onclick = function () { setOpen(!links.classList.contains('is-open')); };
+    links.addEventListener('click', function (event) { if (event.target.closest('a')) setOpen(false); });
+    bar.addEventListener('keydown', function (event) { if (event.key === 'Escape' && links.classList.contains('is-open')) { setOpen(false); menu.focus(); } });
     return bar;
   }
 
-  function sectionTitle(kicker, title, intro) {
-    var wrap = el('div', 'section-heading'); if (kicker) wrap.appendChild(el('span', 'eyebrow', kicker)); wrap.appendChild(el('h2', '', title)); if (intro) wrap.appendChild(el('p', '', intro)); return wrap;
+  function sectionTitle(kicker, title, intro, center) {
+    var wrap = el('div', 'section-heading' + (center ? ' is-center' : '')); if (kicker) wrap.appendChild(el('span', 'eyebrow', kicker)); wrap.appendChild(el('h2', '', title)); if (intro) wrap.appendChild(el('p', '', intro)); return wrap;
   }
   function progress(domain) { return Math.round((count(domain) / C[domain].L.length) * 100); }
+
+  var SNIPPETS = {
+    html: [[['k', '<section'], ['a', ' class'], ['p', '='], ['s', '"carte"'], ['k', '>']], [['', '  '], ['k', '<h2>'], ['', 'Mon premier site'], ['k', '</h2>']], [['', '  '], ['k', '<p>'], ['', 'Créé avec Atelier Web'], ['k', '</p>']], [['', '  '], ['k', '<a'], ['a', ' href'], ['p', '='], ['s', '"#"'], ['k', '>'], ['', 'Découvrir'], ['k', '</a>']], [['k', '</section>']]],
+    css: [[['k', '.carte'], ['p', ' {']], [['', '  '], ['a', 'padding'], ['p', ': '], ['s', '1.5rem'], ['p', ';']], [['', '  '], ['a', 'border-radius'], ['p', ': '], ['s', '1rem'], ['p', ';']], [['', '  '], ['a', 'background'], ['p', ': '], ['s', '#e9f8dc'], ['p', ';']], [['p', '}']]],
+    javascript: [[['k', 'const'], ['', ' lien '], ['p', '= '], ['a', 'document']], [['p', '  .'], ['a', 'querySelector'], ['p', '('], ['s', "'a'"], ['p', ');']], [['a', 'lien'], ['p', '.'], ['a', 'onclick'], ['p', ' = () '], ['k', '=>'], ['p', ' {']], [['', '  '], ['a', 'alert'], ['p', '('], ['s', "'Bienvenue !'"], ['p', ');']], [['p', '};']]],
+    php: [[['k', '<?php']], [['a', '$prenom'], ['p', ' = '], ['s', "'Awa'"], ['p', ';']], [['k', 'echo'], ['', ' '], ['s', '"Bonjour $prenom !"'], ['p', ';']], [['k', '?>']]]
+  };
+
+  function codeLines(pre, lang) {
+    pre.textContent = '';
+    SNIPPETS[lang].forEach(function (line, index) {
+      var row = el('span', 'code-line'); row.style.setProperty('--i', index);
+      line.forEach(function (token) { row.appendChild(token[0] ? el('span', 'tk-' + token[0], token[1]) : document.createTextNode(token[1])); });
+      if (index === SNIPPETS[lang].length - 1) row.appendChild(el('span', 'caret'));
+      pre.appendChild(row);
+    });
+  }
+
+  function heroVisual(totals) {
+    var langs = ['html', 'css', 'javascript', 'php'], files = { html: 'index.html', css: 'style.css', javascript: 'app.js', php: 'index.php' };
+    var visual = el('div', 'hero-visual'); visual.setAttribute('aria-hidden', 'true');
+    var win = el('div', 'editor-window'), chrome = el('div', 'editor-chrome'), dots = el('span', 'chrome-dots'), tabs = el('div', 'editor-tabs');
+    dots.appendChild(el('i')); dots.appendChild(el('i')); dots.appendChild(el('i')); chrome.appendChild(dots);
+    langs.forEach(function (lang) { var tab = el('span', 'editor-tab', files[lang]); tab.style.setProperty('--tab-accent', COLORS[lang]); tabs.appendChild(tab); });
+    chrome.appendChild(tabs); win.appendChild(chrome);
+    var pre = el('pre', 'editor-code'); win.appendChild(pre); visual.appendChild(win);
+    var preview = el('div', 'preview-card'), site = el('div', 'preview-site'), toast = el('span', 'preview-toast');
+    preview.appendChild(el('span', 'preview-label', 'APERÇU EN DIRECT'));
+    site.appendChild(el('strong', '', 'Mon premier site')); site.appendChild(el('small', '', 'Créé avec Atelier Web')); site.appendChild(el('span', 'fake-button', 'Découvrir'));
+    preview.appendChild(site); preview.appendChild(toast); visual.appendChild(preview);
+    var badge = el('div', 'float-badge'), badgeText = el('span'); badge.appendChild(icon('check', 'badge-check'));
+    badgeText.appendChild(el('strong', '', 'Leçon validée')); badgeText.appendChild(el('small', '', '+1 compétence acquise')); badge.appendChild(badgeText); visual.appendChild(badge);
+    var pct = totals.lessons ? Math.round(totals.done / totals.lessons * 100) : 0, meter = el('div', 'float-progress'), ring = el('span', 'ring'), meterText = el('span');
+    ring.style.setProperty('--p', pct); ring.appendChild(el('b', '', pct + '%')); meter.appendChild(ring);
+    meterText.appendChild(el('strong', '', 'Votre progression')); meterText.appendChild(el('small', '', totals.done + ' / ' + totals.lessons + ' leçons')); meter.appendChild(meterText); visual.appendChild(meter);
+    var step = 0, paused = false;
+    function show(index) {
+      var lang = langs[index]; visual.setAttribute('data-lang', lang);
+      Array.prototype.forEach.call(tabs.children, function (tab, tabIndex) { tab.classList.toggle('is-active', tabIndex === index); });
+      codeLines(pre, lang); toast.textContent = lang === 'javascript' ? 'Bienvenue !' : lang === 'php' ? 'Bonjour Awa !' : '';
+    }
+    show(0);
+    if (MOTION) {
+      visual.onmouseenter = function () { paused = true; }; visual.onmouseleave = function () { paused = false; };
+      heroTimer = setInterval(function () { if (paused || document.hidden) return; step = (step + 1) % langs.length; show(step); }, 4200);
+    }
+    return visual;
+  }
+
+  function countUp(node) {
+    var target = +node.getAttribute('data-count'), start = null; if (!target) return;
+    function frame(time) { if (start === null) start = time; var t = Math.min((time - start) / 900, 1); node.textContent = Math.round(target * (1 - Math.pow(1 - t, 3))); if (t < 1) requestAnimationFrame(frame); }
+    node.textContent = '0'; requestAnimationFrame(frame);
+  }
+  function reveal(root) {
+    var nodes = root.querySelectorAll('.reveal');
+    if (!MOTION || !('IntersectionObserver' in window)) { Array.prototype.forEach.call(nodes, function (node) { node.classList.remove('reveal'); }); return; }
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return; var node = entry.target; observer.unobserve(node); node.classList.add('is-visible');
+        Array.prototype.forEach.call(node.querySelectorAll('[data-count]'), countUp);
+        setTimeout(function () { node.classList.remove('reveal', 'is-visible'); }, 1100);
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+    Array.prototype.forEach.call(nodes, function (node) { observer.observe(node); });
+    revealObserver = observer;
+  }
 
   function home(app) {
     app.className = 'site home-page';
     app.appendChild(top('index', true));
-    var hero = el('section', 'hero');
-    var heroCopy = el('div', 'hero-copy'); heroCopy.appendChild(el('span', 'eyebrow hero-eyebrow', 'FORMATION • PROJETS • PRATIQUE'));
-    var h1 = el('h1'); h1.innerHTML = 'Apprenez à créer<br><em>le web qui vous ressemble.</em>'; heroCopy.appendChild(h1);
-    heroCopy.appendChild(el('p', 'hero-lead', 'Un parcours clair et concret pour comprendre les technologies web, pratiquer à votre rythme et construire des projets dont vous pouvez être fier.'));
-    var actions = el('div', 'hero-actions'); actions.appendChild(link('html', 'Découvrir les formations', 'button button-primary')); actions.appendChild(link('projet', 'Explorer les projets', 'button button-secondary')); heroCopy.appendChild(actions);
-    var trust = el('div', 'hero-trust'); trust.appendChild(el('span', 'trust-dot')); trust.appendChild(el('span', '', 'Pensé pour les débutants · progression sauvegardée')); heroCopy.appendChild(trust); hero.appendChild(heroCopy);
-    var visual = el('div', 'hero-visual'); visual.setAttribute('aria-hidden', 'true');
-    var orb = el('div', 'hero-orbit'); orb.appendChild(el('div', 'orbit-core', 'BD')); orb.appendChild(el('span', 'orbit-dot dot-one')); orb.appendChild(el('span', 'orbit-dot dot-two')); visual.appendChild(orb);
-    var floatA = el('div', 'float-card float-code'); floatA.appendChild(el('span', 'float-label', 'LEÇON DU JOUR')); floatA.appendChild(el('strong', '', '<section>')); floatA.appendChild(el('small', '', 'Structure · HTML')); visual.appendChild(floatA);
-    var floatB = el('div', 'float-card float-progress'); floatB.appendChild(el('span', 'float-label', 'VOTRE PARCOURS')); floatB.appendChild(el('strong', '', '10 leçons')); floatB.appendChild(el('small', '', 'par domaine')); visual.appendChild(floatB); hero.appendChild(visual); app.appendChild(hero);
-    var stats = el('div', 'hero-stats'); [['05', 'domaines'], ['50', 'leçons'], ['25', 'projets']].forEach(function (item) { var stat = el('div', 'hero-stat'); stat.appendChild(el('strong', '', item[0])); stat.appendChild(el('span', '', item[1])); stats.appendChild(stat); }); app.appendChild(stats);
+    var main = el('main', 'home-main'); main.id = 'contenu'; main.tabIndex = -1; app.appendChild(main);
+    var totals = { lessons: 0, projects: 0, done: 0 };
+    K.forEach(function (key) { totals.lessons += C[key].L.length; totals.projects += (C[key].projects || []).length; totals.done += count(key); });
+    var started = totals.done > 0 && totals.done < totals.lessons;
+    var resumeKey = started ? (K.filter(function (key) { var n = count(key); return n > 0 && n < C[key].L.length; })[0] || K.filter(function (key) { return count(key) < C[key].L.length; })[0]) : K[0];
+    var ctaText = started ? 'Reprendre ' + C[resumeKey].name : totals.done ? 'Revoir les parcours' : 'Commencer avec HTML';
 
-    var formations = el('section', 'home-section formations-section'); formations.appendChild(sectionTitle('LE PARCOURS', 'Des formations qui avancent avec vous', 'Chaque domaine part des fondamentaux et vous emmène vers une réalisation concrète.')); var grid = el('div', 'formation-grid');
-    K.forEach(function (key, index) { var domain = C[key], card = el('article', 'formation-card'); card.style.setProperty('--card-accent', COLORS[key]); var head = el('div', 'formation-card-head'); head.appendChild(el('span', 'domain-icon', ICONS[key])); head.appendChild(el('span', 'card-index', '0' + (index + 1))); card.appendChild(head); card.appendChild(el('h3', '', domain.name)); card.appendChild(el('p', '', domain.tag.charAt(0).toUpperCase() + domain.tag.slice(1) + '.')); var meta = el('div', 'formation-meta'); meta.appendChild(el('span', '', domain.L.length + ' leçons')); meta.appendChild(el('span', '', index === 0 ? 'Débutant' : index === 4 ? 'Synthèse' : 'Progressif')); card.appendChild(meta); var meter = el('div', 'mini-progress'); meter.appendChild(el('i')); meter.lastChild.style.width = progress(key) + '%'; card.appendChild(meter); var foot = el('div', 'formation-card-foot'); foot.appendChild(el('span', '', progress(key) + '% terminé')); foot.appendChild(link(key, 'Voir le parcours →', 'text-link')); card.appendChild(foot); grid.appendChild(card); }); formations.appendChild(grid); app.appendChild(formations);
+    var hero = el('section', 'hero'), heroBg = el('div', 'hero-bg'), heroInner = el('div', 'hero-inner'), heroCopy = el('div', 'hero-copy');
+    hero.setAttribute('aria-labelledby', 'hero-title'); heroBg.setAttribute('aria-hidden', 'true'); hero.appendChild(heroBg);
+    var badge = el('span', 'hero-badge'); badge.appendChild(el('span', 'badge-dot')); badge.appendChild(el('span', '', 'Formation web en français · à votre rythme')); heroCopy.appendChild(badge);
+    var h1 = el('h1'); h1.id = 'hero-title'; h1.innerHTML = 'Apprenez à créer <em>le web qui vous ressemble.</em>'; heroCopy.appendChild(h1);
+    heroCopy.appendChild(el('p', 'hero-lead', 'Un parcours clair et concret pour comprendre les technologies web, coder directement dans le navigateur et construire des projets dont vous serez fier.'));
+    var actions = el('div', 'hero-actions'), start = link(resumeKey, ctaText, 'button button-primary button-lg'); start.appendChild(icon('arrow'));
+    actions.appendChild(start); actions.appendChild(sectionLink('parcours', 'Voir les parcours', 'button button-secondary button-lg')); heroCopy.appendChild(actions);
+    var stack = el('div', 'hero-stack'); stack.appendChild(el('span', 'hero-stack-label', 'Au programme'));
+    K.forEach(function (key) { var chip = el('span', 'tech-chip', C[key].name); chip.style.setProperty('--accent', COLORS[key]); stack.appendChild(chip); }); heroCopy.appendChild(stack);
+    heroInner.appendChild(heroCopy); heroInner.appendChild(heroVisual(totals)); hero.appendChild(heroInner); main.appendChild(hero);
 
-    var why = el('section', 'home-section why-section'); why.appendChild(sectionTitle('UNE MÉTHODE SIMPLE', 'Apprendre en faisant, pas en regardant passer', 'Une expérience pensée pour garder le cap, comprendre ce que vous faites et voir vos progrès.')); var benefits = el('div', 'benefit-grid'); [['01', 'Un chemin lisible', 'Dix étapes progressives par domaine, avec des objectifs et une suite logique.'], ['02', 'Du code à essayer', 'Modifiez les exemples directement et observez le résultat dans le navigateur.'], ['03', 'Des projets utiles', 'Transformez les notions en réalisations concrètes, présentables et évaluables.']].forEach(function (item) { var card = el('article', 'benefit'); card.appendChild(el('span', 'benefit-number', item[0])); card.appendChild(el('h3', '', item[1])); card.appendChild(el('p', '', item[2])); benefits.appendChild(card); }); why.appendChild(benefits); app.appendChild(why);
+    var stats = el('section', 'stats-band'), statGrid = el('div', 'stats-grid reveal'); stats.setAttribute('aria-label', 'Chiffres clés');
+    [[K.length, 'parcours complets'], [totals.lessons, 'leçons guidées'], [totals.projects, 'projets pratiques'], [0, 'installation requise']].forEach(function (item) {
+      var stat = el('div', 'stat'), value = el('strong', '', String(item[0])); value.setAttribute('data-count', item[0]); stat.appendChild(value); stat.appendChild(el('span', '', item[1])); statGrid.appendChild(stat);
+    });
+    stats.appendChild(statGrid); main.appendChild(stats);
 
-    var projects = el('section', 'home-section projects-preview'); projects.appendChild(sectionTitle('PASSER À L’ACTION', 'Des projets pour donner une forme à vos idées', 'Chaque domaine se termine par des briefs progressifs pour passer de l’exercice à une vraie réalisation.')); var projectRow = el('div', 'project-preview-grid'); ['html', 'javascript', 'projet'].forEach(function (key) { var item = C[key].projects[0]; var card = el('article', 'project-preview'); card.appendChild(el('span', 'project-kicker', C[key].name)); card.appendChild(el('h3', '', item.title)); card.appendChild(el('p', '', item.presentation)); card.appendChild(link(key, 'Découvrir le parcours →', 'text-link')); projectRow.appendChild(card); }); projects.appendChild(projectRow); app.appendChild(projects);
+    var formations = el('section', 'home-section'); formations.id = 'parcours';
+    formations.appendChild(sectionTitle('LES PARCOURS', 'Du premier tag au projet final', 'Chaque domaine part des fondamentaux et vous emmène vers une réalisation concrète. Votre progression est sauvegardée dans ce navigateur.'));
+    var grid = el('div', 'course-grid');
+    K.forEach(function (key, index) {
+      var domain = C[key], finished = count(key), pct = progress(key), feature = key === 'projet';
+      var card = el('article', 'course-card reveal' + (index > 2 ? ' is-wide' : '') + (feature ? ' is-feature' : ''));
+      card.style.setProperty('--accent', feature ? '#a4df39' : COLORS[key]); card.style.setProperty('--d', (index % 3) * 80 + 'ms');
+      var head = el('div', 'card-top'), mark = el('span', 'domain-icon', ICONS[key]); mark.setAttribute('aria-hidden', 'true');
+      head.appendChild(mark); head.appendChild(el('span', 'card-step', 'ÉTAPE ' + String(index + 1).padStart(2, '0'))); card.appendChild(head);
+      var title = el('h3'); title.appendChild(link(key, domain.name, 'card-link')); card.appendChild(title);
+      card.appendChild(el('p', 'card-tag', cap(domain.tag) + '.'));
+      var lessons = el('ul', 'card-lessons'); domain.L.slice(0, 3).forEach(function (lesson) { lessons.appendChild(el('li', '', lesson.t)); });
+      if (domain.L.length > 3) lessons.appendChild(el('li', 'more', '+ ' + (domain.L.length - 3) + ' autres leçons')); card.appendChild(lessons);
+      var meta = el('div', 'card-meta'); [domain.L.length + ' leçons', (domain.projects || []).length + ' projets', index === 0 ? 'Débutant' : feature ? 'Synthèse' : 'Progressif'].forEach(function (text) { meta.appendChild(el('span', 'chip', text)); }); card.appendChild(meta);
+      var foot = el('div', 'card-foot'), bar = el('span', 'card-progress'), fill = el('i'); fill.style.width = pct + '%'; bar.setAttribute('aria-hidden', 'true'); bar.appendChild(fill); foot.appendChild(bar);
+      var cta = el('span', 'card-cta', pct === 100 ? 'Terminé' : finished ? pct + ' % · Continuer' : 'Commencer'); cta.appendChild(icon(pct === 100 ? 'check' : 'arrow')); foot.appendChild(cta); card.appendChild(foot);
+      grid.appendChild(card);
+    });
+    formations.appendChild(grid); main.appendChild(formations);
 
-    var about = el('section', 'home-section about-section'); about.id = 'about'; about.appendChild(sectionTitle('À PROPOS', 'Une plateforme pour apprendre en construisant', 'Atelier Web propose un parcours guidé, des exemples testables et des projets concrets pour progresser dans les technologies web.')); var aboutGrid = el('div', 'about-grid'); var aboutCopy = el('div', 'about-copy'); aboutCopy.appendChild(el('p', '', 'L’objectif est simple : rendre le développement web plus clair, plus pratique et plus accessible, avec une progression qui relie chaque notion à une réalisation.')); aboutCopy.appendChild(el('p', '', 'La plateforme est portée par l’identité BoyDiop Technologie et s’adresse aux personnes qui veulent apprendre, pratiquer et donner une forme professionnelle à leurs idées numériques.')); aboutGrid.appendChild(aboutCopy); var aboutNote = el('div', 'about-note'); aboutNote.appendChild(el('span', 'eyebrow', 'NOTRE APPROCHE')); aboutNote.appendChild(el('strong', '', 'Comprendre → pratiquer → construire')); aboutNote.appendChild(el('p', '', 'Chaque leçon vous invite à modifier, tester et expliquer ce que vous venez de découvrir.')); aboutGrid.appendChild(aboutNote); about.appendChild(aboutGrid); app.appendChild(about);
-    var contact = el('section', 'home-section contact-section'); contact.id = 'contact'; contact.appendChild(sectionTitle('CONTACT', 'Une question sur le parcours ?', 'Écrivez ou appelez-nous pour une question sur les formations, le contenu pédagogique ou le fonctionnement de la plateforme.')); var contactGrid = el('div', 'contact-grid'); var phone = el('a', 'contact-card', ''); phone.href = 'tel:+221779708782'; phone.appendChild(el('span', 'contact-icon', '☎')); phone.appendChild(el('span', 'contact-label', 'Téléphone')); phone.appendChild(el('strong', '', '77 970 87 82')); phone.appendChild(el('small', '', 'Appeler directement')); var email = el('a', 'contact-card', ''); email.href = 'mailto:samba.diop3@univ-thies.sn'; email.appendChild(el('span', 'contact-icon', '✉')); email.appendChild(el('span', 'contact-label', 'E-mail')); email.appendChild(el('strong', '', 'samba.diop3@univ-thies.sn')); email.appendChild(el('small', '', 'Envoyer un message')); contactGrid.appendChild(phone); contactGrid.appendChild(email); contact.appendChild(contactGrid); app.appendChild(contact);
-    var finalCta = el('section', 'final-cta'); finalCta.appendChild(el('span', 'eyebrow', 'PRÊT À COMMENCER ?')); finalCta.appendChild(el('h2', '', 'Votre prochaine compétence commence par une première leçon.')); finalCta.appendChild(el('p', '', 'Choisissez un domaine et avancez à votre rythme, une notion après l’autre.')); finalCta.appendChild(link('html', 'Commencer maintenant →', 'button button-light')); app.appendChild(finalCta);
-    var footer = el('footer', 'site-footer'); var footerInner = el('div', 'footer-inner'); var footerBrand = el('div', 'footer-brand'); footerBrand.appendChild(el('strong', '', 'Atelier Web')); footerBrand.appendChild(el('span', '', 'Un parcours BoyDiop Technologie pour apprendre, pratiquer et construire.')); footerInner.appendChild(footerBrand); var footerLinks = el('div', 'footer-links'); footerLinks.appendChild(sectionLink('about', 'À propos')); footerLinks.appendChild(sectionLink('contact', 'Contact')); footerLinks.appendChild(link('html', 'Formations')); footerInner.appendChild(footerLinks); var footerContact = el('div', 'footer-contact'); var footerPhone = el('a', '', '77 970 87 82'); footerPhone.href = 'tel:+221779708782'; var footerMail = el('a', '', 'samba.diop3@univ-thies.sn'); footerMail.href = 'mailto:samba.diop3@univ-thies.sn'; footerContact.appendChild(footerPhone); footerContact.appendChild(footerMail); footerInner.appendChild(footerContact); footer.appendChild(footerInner); footer.appendChild(el('small', 'footer-copy', '© ' + new Date().getFullYear() + ' BoyDiop Technologie. Tous droits réservés.')); app.appendChild(footer);
+    var method = el('section', 'home-section is-band method-section');
+    method.appendChild(sectionTitle('LA MÉTHODE', 'Apprendre en faisant, pas en regardant passer', 'Chaque notion suit le même cycle : vous comprenez, vous essayez, puis vous construisez quelque chose de réel.', true));
+    var steps = el('ol', 'method-grid');
+    [['book', 'Comprendre', 'Des définitions claires, des concepts illustrés et des exemples tirés de situations professionnelles.'], ['code', 'Pratiquer', 'Modifiez le code directement dans la leçon et observez le résultat en direct, sans rien installer.'], ['rocket', 'Construire', 'Validez vos acquis avec un quiz, puis réalisez des projets guidés à présenter dans votre portfolio.']].forEach(function (item, index) {
+      var stepNode = el('li', 'step reveal'); stepNode.style.setProperty('--d', index * 100 + 'ms');
+      stepNode.appendChild(icon(item[0], 'step-icon')); stepNode.appendChild(el('span', 'step-num', '0' + (index + 1))); stepNode.appendChild(el('h3', '', item[1])); stepNode.appendChild(el('p', '', item[2])); steps.appendChild(stepNode);
+    });
+    method.appendChild(steps);
+    var features = el('div', 'feature-strip reveal'), featureList = el('ul'); features.appendChild(el('strong', '', 'Dans les leçons'));
+    ['Niveau et durée estimée', 'Code expliqué pas à pas', 'Éditeur avec aperçu en direct', 'Quiz avec correction', 'Progression sauvegardée'].forEach(function (text) { var item = el('li'); item.appendChild(icon('check')); item.appendChild(document.createTextNode(text)); featureList.appendChild(item); });
+    features.appendChild(featureList); method.appendChild(features); main.appendChild(method);
+
+    var projects = el('section', 'home-section projects-section');
+    projects.appendChild(sectionTitle('PASSER À L’ACTION', 'Des projets pour donner forme à vos idées', 'Chaque parcours se termine par des briefs progressifs, avec cahier des charges, étapes, livrables et grille d’évaluation.'));
+    var projectGrid = el('div', 'project-grid');
+    ['html', 'javascript', 'projet'].forEach(function (key, index) {
+      var item = C[key].projects[0], tile = el('article', 'project-tile reveal'); tile.style.setProperty('--accent', COLORS[key]); tile.style.setProperty('--d', index * 90 + 'ms');
+      var head = el('div', 'project-tile-head'); head.appendChild(el('span', 'project-domain', C[key].name)); head.appendChild(el('span', 'chip', item.level)); tile.appendChild(head);
+      var title = el('h3'); title.appendChild(link(key, item.title, 'card-link')); tile.appendChild(title);
+      tile.appendChild(el('p', '', item.presentation));
+      if (Array.isArray(item.skills)) { var skills = el('ul', 'skill-list'); item.skills.slice(0, 3).forEach(function (skill) { skills.appendChild(el('li', '', skill)); }); tile.appendChild(skills); }
+      var more = el('span', 'card-cta', 'Découvrir le parcours'); more.appendChild(icon('arrow')); tile.appendChild(more); projectGrid.appendChild(tile);
+    });
+    projects.appendChild(projectGrid); main.appendChild(projects);
+
+    var about = el('section', 'home-section is-band about-section'); about.id = 'about';
+    var aboutGrid = el('div', 'about-grid'), aboutCopy = el('div', 'about-copy');
+    aboutCopy.appendChild(sectionTitle('À PROPOS', 'Une plateforme pour apprendre en construisant'));
+    aboutCopy.appendChild(el('p', '', 'L’objectif est simple : rendre le développement web plus clair, plus pratique et plus accessible, avec une progression qui relie chaque notion à une réalisation.'));
+    aboutCopy.appendChild(el('p', '', 'Atelier Web s’adresse aux personnes qui veulent apprendre, pratiquer et donner une forme professionnelle à leurs idées numériques, directement dans le navigateur.'));
+    var values = el('ul', 'values');
+    [['Clair', 'une notion à la fois, avec un objectif explicite.'], ['Pratique', 'du code à modifier et à tester dans les leçons.'], ['Accessible', 'en français, sans compte ni inscription.']].forEach(function (item) {
+      var row = el('li'), text = el('span'); row.appendChild(icon('check', 'value-icon')); text.appendChild(el('strong', '', item[0])); text.appendChild(document.createTextNode(' — ' + item[1])); row.appendChild(text); values.appendChild(row);
+    });
+    aboutCopy.appendChild(values); aboutGrid.appendChild(aboutCopy);
+    var aboutCard = el('aside', 'about-card reveal'), chip = el('span', 'logo-chip'), aboutLogo = el('img'); aboutLogo.src = 'logo.svg'; aboutLogo.alt = 'BoyDiop Technologie'; chip.appendChild(aboutLogo); aboutCard.appendChild(chip);
+    aboutCard.appendChild(el('strong', '', 'Comprendre → pratiquer → construire'));
+    aboutCard.appendChild(el('p', '', 'Une plateforme portée par BoyDiop Technologie. Chaque leçon vous invite à modifier, tester et expliquer ce que vous venez de découvrir.'));
+    var flow = el('div', 'flow'); K.forEach(function (key) { flow.appendChild(el('span', '', C[key].name)); }); aboutCard.appendChild(flow);
+    aboutGrid.appendChild(aboutCard); about.appendChild(aboutGrid); main.appendChild(about);
+
+    var contact = el('section', 'home-section contact-section'); contact.id = 'contact';
+    var contactLayout = el('div', 'contact-layout'), contactGrid = el('div', 'contact-grid');
+    contactLayout.appendChild(sectionTitle('CONTACT', 'Une question sur le parcours ?', 'Écrivez ou appelez directement pour une question sur les formations, le contenu pédagogique ou le fonctionnement de la plateforme.'));
+    [{ icon: 'phone', label: 'Téléphone', value: '77 970 87 82', href: 'tel:+221779708782', hint: 'Appeler directement' }, { icon: 'mail', label: 'E-mail', value: 'samba.diop3@univ-thies.sn', href: 'mailto:samba.diop3@univ-thies.sn', hint: 'Envoyer un message', copy: true }].forEach(function (item, index) {
+      var card = el('div', 'contact-card reveal'), body = el('div', 'contact-body'), anchor = el('a', 'contact-link', item.value); card.style.setProperty('--d', index * 90 + 'ms');
+      card.appendChild(icon(item.icon, 'contact-icon')); anchor.href = item.href;
+      body.appendChild(el('span', 'contact-label', item.label)); body.appendChild(anchor); body.appendChild(el('span', 'contact-hint', item.hint)); card.appendChild(body);
+      if (item.copy && navigator.clipboard) {
+        var copy = el('button', 'copy-button'), copyText = el('span', '', 'Copier'), status = el('span', 'sr-only'); copy.type = 'button'; copy.setAttribute('aria-label', 'Copier l’adresse e-mail'); status.setAttribute('role', 'status');
+        copy.appendChild(icon('copy')); copy.appendChild(copyText);
+        copy.onclick = function () {
+          navigator.clipboard.writeText(item.value).then(function () {
+            copy.classList.add('is-copied'); copyText.textContent = 'Copié'; status.textContent = 'Adresse e-mail copiée';
+            setTimeout(function () { copy.classList.remove('is-copied'); copyText.textContent = 'Copier'; status.textContent = ''; }, 2000);
+          }, function () { copyText.textContent = 'Échec'; });
+        };
+        card.appendChild(copy); card.appendChild(status);
+      }
+      contactGrid.appendChild(card);
+    });
+    contactLayout.appendChild(contactGrid); contact.appendChild(contactLayout); main.appendChild(contact);
+
+    var ctaWrap = el('section', 'final-cta-wrap'), finalCta = el('div', 'final-cta reveal'), ctaActions = el('div', 'cta-actions');
+    finalCta.appendChild(el('span', 'eyebrow', 'PRÊT À COMMENCER ?'));
+    finalCta.appendChild(el('h2', '', 'Votre prochaine compétence commence par une première leçon.'));
+    finalCta.appendChild(el('p', '', 'Choisissez un domaine et avancez à votre rythme, une notion après l’autre.'));
+    var ctaStart = link(resumeKey, ctaText, 'button button-light button-lg'); ctaStart.appendChild(icon('arrow')); ctaActions.appendChild(ctaStart);
+    ctaActions.appendChild(link('projet', 'Explorer le projet final', 'button button-outline-light button-lg'));
+    finalCta.appendChild(ctaActions); ctaWrap.appendChild(finalCta); main.appendChild(ctaWrap);
+
+    var footer = el('footer', 'site-footer'), footerInner = el('div', 'footer-inner'), footerBrand = el('div', 'footer-brand'), footerChip = el('span', 'logo-chip'), footerLogo = el('img');
+    footerLogo.src = 'logo.svg'; footerLogo.alt = 'BoyDiop Technologie'; footerChip.appendChild(footerLogo); footerBrand.appendChild(footerChip);
+    footerBrand.appendChild(el('strong', '', 'Atelier Web')); footerBrand.appendChild(el('p', '', 'Un parcours BoyDiop Technologie pour apprendre, pratiquer et construire le web.')); footerInner.appendChild(footerBrand);
+    function column(title, items) { var col = el('nav', 'footer-col'); col.setAttribute('aria-label', title); col.appendChild(el('strong', 'footer-title', title)); items.forEach(function (item) { col.appendChild(item); }); return col; }
+    var footerPhone = el('a', '', '77 970 87 82'), footerMail = el('a', '', 'samba.diop3@univ-thies.sn'); footerPhone.href = 'tel:+221779708782'; footerMail.href = 'mailto:samba.diop3@univ-thies.sn';
+    footerInner.appendChild(column('Parcours', K.map(function (key) { return link(key, C[key].name); })));
+    footerInner.appendChild(column('Plateforme', [sectionLink('parcours', 'Tous les parcours'), sectionLink('about', 'À propos'), sectionLink('contact', 'Contact')]));
+    footerInner.appendChild(column('Contact', [footerPhone, footerMail]));
+    var footerBottom = el('div', 'footer-bottom'), toTop = el('button', 'to-top', 'Retour en haut'); toTop.type = 'button'; toTop.appendChild(icon('up'));
+    toTop.onclick = function () { window.scrollTo({ top: 0, behavior: MOTION ? 'smooth' : 'auto' }); };
+    footerBottom.appendChild(el('small', '', '© ' + new Date().getFullYear() + ' BoyDiop Technologie. Tous droits réservés.')); footerBottom.appendChild(toTop);
+    footer.appendChild(footerInner); footer.appendChild(footerBottom); app.appendChild(footer);
+    reveal(app);
   }
 
   function lessonSection(container, section, index) { var box = el('section', 'lesson-section ' + (section.type || 'concept')); box.id = 'section-' + index; box.appendChild(el('h3', '', section.title)); (section.text || '').split('\n').forEach(function (line) { if (line.trim()) box.appendChild(el('p', '', line)); }); container.appendChild(box); }
@@ -82,9 +281,9 @@
   function projectsBlock(app, domain) { if (!domain.projects || !domain.projects.length) return; var section = el('section', 'course-projects'); section.appendChild(sectionTitle('POUR ALLER PLUS LOIN', 'Projets pratiques et projets finaux', 'Des briefs progressifs pour mobiliser les notions et construire un portfolio.')); var list = el('div', 'projects'); domain.projects.forEach(function (project) { var details = el('details', 'project-card'); var summary = el('summary'); summary.appendChild(el('strong', '', project.title)); summary.appendChild(el('span', 'project-level', project.level)); details.appendChild(summary); function block(title, value) { var blockNode = el('div', 'project-block'); blockNode.appendChild(el('h4', '', title)); if (Array.isArray(value)) { var ul = el('ul'); value.forEach(function (item) { ul.appendChild(el('li', '', Array.isArray(item) ? item[0] + ' — ' + item[1] + ' %' : item)); }); blockNode.appendChild(ul); } else blockNode.appendChild(el('p', '', value)); details.appendChild(blockNode); } block('Présentation', project.presentation); block('Contexte / problème', project.context); block('Objectifs', project.objectives); block('Compétences mobilisées', project.skills); block('Prérequis', project.prerequisites); block('Matériel et outils', project.tools); block('Cahier des charges', project.brief); block('Étapes de réalisation', project.steps); block('Livrables attendus', project.deliverables); block('Critères de réussite', project.success); block('Grille d’évaluation', project.rubric); block('Erreurs à éviter', project.errors); block('Améliorations possibles', project.extensions); block('Solution de référence', project.reference); list.appendChild(details); }); section.appendChild(list); app.appendChild(section); }
 
   function track(app, page) {
-    var domain = C[page], index = K.indexOf(page), nextPage = K[index + 1] || 'index'; current[page] = current[page] || 0;
+    var domain = C[page], index = K.indexOf(page), nextPage = K[index + 1] || 'index'; if (current[page] === undefined) { current[page] = domain.L.findIndex(function (_, lessonIndex) { return !done[page + lessonIndex]; }); if (current[page] < 0) current[page] = 0; }
     app.className = 'site course-page'; app.appendChild(top(page, false));
-    var courseHead = el('header', 'course-header'); var breadcrumb = el('div', 'breadcrumb'); breadcrumb.appendChild(link('index', 'Accueil')); breadcrumb.appendChild(el('span', '', '/')); breadcrumb.appendChild(el('span', '', domain.name)); courseHead.appendChild(breadcrumb); courseHead.appendChild(el('span', 'eyebrow', 'PARCOURS DE FORMATION')); courseHead.appendChild(el('h1', '', domain.name)); courseHead.appendChild(el('p', 'course-tagline', domain.tag.charAt(0).toUpperCase() + domain.tag.slice(1) + '.')); domain.intro.forEach(function (text) { courseHead.appendChild(el('p', 'course-intro', text)); }); courseHead.appendChild(el('p', 'course-goal', domain.goal)); var trackBar = el('div', 'course-progress'); var trackLine = el('div', 'progress-line'); var progressFill = el('i'); trackLine.appendChild(progressFill); trackBar.appendChild(trackLine); trackBar.appendChild(el('span', 'progress-label')); courseHead.appendChild(trackBar); app.appendChild(courseHead);
+    var courseHead = el('header', 'course-header'); courseHead.id = 'contenu'; courseHead.tabIndex = -1; var breadcrumb = el('div', 'breadcrumb'); breadcrumb.appendChild(link('index', 'Accueil')); breadcrumb.appendChild(el('span', '', '/')); breadcrumb.appendChild(el('span', '', domain.name)); courseHead.appendChild(breadcrumb); courseHead.appendChild(el('span', 'eyebrow', 'PARCOURS DE FORMATION')); courseHead.appendChild(el('h1', '', domain.name)); courseHead.appendChild(el('p', 'course-tagline', domain.tag.charAt(0).toUpperCase() + domain.tag.slice(1) + '.')); domain.intro.forEach(function (text) { courseHead.appendChild(el('p', 'course-intro', text)); }); courseHead.appendChild(el('p', 'course-goal', domain.goal)); var trackBar = el('div', 'course-progress'); var trackLine = el('div', 'progress-line'); var progressFill = el('i'); trackLine.appendChild(progressFill); trackBar.appendChild(trackLine); trackBar.appendChild(el('span', 'progress-label')); courseHead.appendChild(trackBar); app.appendChild(courseHead);
     var layout = el('div', 'lesson-layout'); var aside = el('aside', 'lesson-sidebar'); aside.appendChild(el('p', 'sidebar-label', 'Votre parcours')); var lessonNav = el('nav', 'lesson-nav'); lessonNav.setAttribute('aria-label', 'Leçons du parcours'); aside.appendChild(lessonNav); var main = el('main', 'lesson-content'); layout.appendChild(aside); layout.appendChild(main); app.appendChild(layout);
     function draw() {
       var lessonIndex = current[page], lesson = domain.L[lessonIndex], id = page + lessonIndex, completed = count(page); progressFill.style.width = (completed / domain.L.length * 100) + '%'; courseHead.querySelector('.progress-label').textContent = completed + ' / ' + domain.L.length + ' leçons terminées'; lessonNav.textContent = '';
@@ -98,6 +297,6 @@
     }
     draw(); projectsBlock(app, domain);
   }
-  function render() { var page = route; if (page !== 'index' && !C[page]) page = 'index'; var app = document.getElementById('app'); app.textContent = ''; if (page === 'index') home(app); else track(app, page); }
+  function render() { clearInterval(heroTimer); if (revealObserver) revealObserver.disconnect(); var page = route; if (page !== 'index' && !C[page]) page = 'index'; var app = document.getElementById('app'); app.textContent = ''; if (page === 'index') home(app); else track(app, page); }
   render();
 })();
