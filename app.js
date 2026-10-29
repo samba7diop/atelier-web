@@ -1,9 +1,12 @@
 (function () {
   var C = window.COURS;
   var SINGLE = !!window.SINGLE;
-  var K = ['html', 'css', 'javascript', 'php', 'projet'];
-  var COLORS = { html: '#e86a3a', css: '#3478e5', javascript: '#d49b00', php: '#7567bd', projet: '#168342' };
-  var ICONS = { html: '</>', css: '{}', javascript: 'JS', php: '<?', projet: '✦' };
+  var K = ['python', 'html', 'css', 'javascript', 'php', 'pythonweb', 'projet'].filter(function (key) { return C[key]; });
+  var WEB = ['html', 'css', 'javascript', 'php', 'projet'];
+  var PY = ['python', 'pythonweb'].filter(function (key) { return C[key]; });
+  var COLORS = { html: '#e86a3a', css: '#3478e5', javascript: '#d49b00', php: '#7567bd', projet: '#168342', python: '#2b8a9e', pythonweb: '#c2417a' };
+  var ICONS = { html: '</>', css: '{}', javascript: 'JS', php: '<?', projet: '✦', python: '>>>', pythonweb: '{%' };
+  function short(key) { return C[key].short || C[key].name; }
   var route = SINGLE ? (location.hash.slice(1) || 'index') : window.PAGE;
   var current = {};
   var done = {};
@@ -59,10 +62,10 @@
     brand.appendChild(mark); brand.appendChild(brandText); bar.appendChild(brand);
     var menu = el('button', 'menu-toggle'); menu.type = 'button'; menu.setAttribute('aria-expanded', 'false'); menu.setAttribute('aria-controls', 'site-links'); menu.setAttribute('aria-label', 'Ouvrir le menu'); menu.appendChild(el('span', 'menu-lines')); bar.appendChild(menu);
     var links = el('nav', 'top-links'); links.id = 'site-links'; links.setAttribute('aria-label', 'Navigation principale');
-    K.forEach(function (key) { var anchor = link(key, C[key].name); if (key === page) anchor.setAttribute('aria-current', 'page'); links.appendChild(anchor); });
+    K.forEach(function (key) { var anchor = link(key, short(key)); if (key === page) anchor.setAttribute('aria-current', 'page'); links.appendChild(anchor); });
     links.appendChild(sectionLink('about', 'À propos'));
     links.appendChild(sectionLink('contact', 'Contact'));
-    if (home) links.appendChild(link('html', 'Commencer', 'nav-cta'));
+    if (home) links.appendChild(link(K[0], 'Commencer', 'nav-cta'));
     bar.appendChild(links);
     function setOpen(open) { links.classList.toggle('is-open', open); bar.classList.toggle('menu-open', open); menu.setAttribute('aria-expanded', open ? 'true' : 'false'); menu.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu'); }
     menu.onclick = function () { setOpen(!links.classList.contains('is-open')); };
@@ -151,7 +154,7 @@
     K.forEach(function (key) { totals.lessons += C[key].L.length; totals.projects += (C[key].projects || []).length; totals.done += count(key); });
     var started = totals.done > 0 && totals.done < totals.lessons;
     var resumeKey = started ? (K.filter(function (key) { var n = count(key); return n > 0 && n < C[key].L.length; })[0] || K.filter(function (key) { return count(key) < C[key].L.length; })[0]) : K[0];
-    var ctaText = started ? 'Reprendre ' + C[resumeKey].name : totals.done ? 'Revoir les parcours' : 'Commencer avec HTML';
+    var ctaText = started ? 'Reprendre ' + short(resumeKey) : totals.done ? 'Revoir les parcours' : 'Commencer avec ' + short(K[0]);
 
     var hero = el('section', 'hero'), heroBg = el('div', 'hero-bg'), heroInner = el('div', 'hero-inner'), heroCopy = el('div', 'hero-copy');
     hero.setAttribute('aria-labelledby', 'hero-title'); heroBg.setAttribute('aria-hidden', 'true'); hero.appendChild(heroBg);
@@ -161,7 +164,7 @@
     var actions = el('div', 'hero-actions'), start = link(resumeKey, ctaText, 'button button-primary button-lg'); start.appendChild(icon('arrow'));
     actions.appendChild(start); actions.appendChild(sectionLink('parcours', 'Voir les parcours', 'button button-secondary button-lg')); heroCopy.appendChild(actions);
     var stack = el('div', 'hero-stack'); stack.appendChild(el('span', 'hero-stack-label', 'Au programme'));
-    K.forEach(function (key) { var chip = el('span', 'tech-chip', C[key].name); chip.style.setProperty('--accent', COLORS[key]); stack.appendChild(chip); }); heroCopy.appendChild(stack);
+    K.forEach(function (key) { var chip = el('span', 'tech-chip', short(key)); chip.style.setProperty('--accent', COLORS[key]); stack.appendChild(chip); }); heroCopy.appendChild(stack);
     heroInner.appendChild(heroCopy); heroInner.appendChild(heroVisual(totals)); hero.appendChild(heroInner); main.appendChild(hero);
 
     var stats = el('section', 'stats-band'), statGrid = el('div', 'stats-grid reveal'); stats.setAttribute('aria-label', 'Chiffres clés');
@@ -170,10 +173,32 @@
     });
     stats.appendChild(statGrid); main.appendChild(stats);
 
+    if (PY.length) {
+      var pySection = el('section', 'home-section python-section'), pyGrid = el('div', 'py-grid'); pySection.id = 'python';
+      pySection.appendChild(sectionTitle('NOUVEAU · PYTHON', 'Programmer avec Python, de la logique au Web', 'Deux parcours complémentaires : apprenez d’abord à raisonner comme un programmeur, puis construisez de vraies applications Web avec Django.'));
+      PY.forEach(function (key, index) {
+        var domain = C[key], finished = count(key), pct = progress(key), card = el('article', 'py-card reveal'), title = el('h3', '', domain.name);
+        card.style.setProperty('--accent', COLORS[key]); card.style.setProperty('--d', index * 90 + 'ms'); title.id = 'py-title-' + key; card.setAttribute('aria-labelledby', title.id);
+        var head = el('div', 'card-top'), mark = el('span', 'domain-icon', ICONS[key]); mark.setAttribute('aria-hidden', 'true');
+        head.appendChild(mark); head.appendChild(el('span', 'py-badge' + (domain.badgeStrong ? ' is-strong' : ''), domain.badge)); card.appendChild(head);
+        card.appendChild(title); card.appendChild(el('p', 'py-desc', domain.desc));
+        var meta = el('div', 'card-meta'); [domain.L.length + ' leçons', domain.level, (domain.projects || []).length + ' projets'].forEach(function (text) { meta.appendChild(el('span', 'chip', text)); }); card.appendChild(meta);
+        var prereq = el('p', 'py-prereq'); prereq.appendChild(el('strong', '', 'Prérequis : ')); prereq.appendChild(document.createTextNode(domain.prereq)); card.appendChild(prereq);
+        var programme = el('details', 'py-program'), lessons = el('ol'); programme.appendChild(el('summary', '', 'Programme des ' + domain.L.length + ' leçons'));
+        domain.L.forEach(function (lesson, lessonIndex) { lessons.appendChild(el('li', done[key + lessonIndex] ? 'is-done' : '', lesson.t)); }); programme.appendChild(lessons); card.appendChild(programme);
+        var foot = el('div', 'card-foot'), bar = el('span', 'card-progress'), fill = el('i'); fill.style.width = pct + '%'; bar.setAttribute('aria-hidden', 'true'); bar.appendChild(fill);
+        foot.appendChild(bar); foot.appendChild(el('span', 'py-progress-label', finished ? pct + ' % terminé' : 'Pas encore commencé')); card.appendChild(foot);
+        var cardActions = el('div', 'py-actions'), begin = link(key, finished ? 'Continuer la formation' : 'Commencer la formation', 'button button-primary'), program = el('a', 'button button-secondary', 'Voir le programme');
+        begin.appendChild(icon('arrow')); program.href = SINGLE ? '#' + key : key + '.html#programme'; if (SINGLE) program.onclick = function (event) { event.preventDefault(); go(key); };
+        cardActions.appendChild(begin); cardActions.appendChild(program); card.appendChild(cardActions); pyGrid.appendChild(card);
+      });
+      pySection.appendChild(pyGrid); main.appendChild(pySection);
+    }
+
     var formations = el('section', 'home-section'); formations.id = 'parcours';
-    formations.appendChild(sectionTitle('LES PARCOURS', 'Du premier tag au projet final', 'Chaque domaine part des fondamentaux et vous emmène vers une réalisation concrète. Votre progression est sauvegardée dans ce navigateur.'));
+    formations.appendChild(sectionTitle('LES PARCOURS WEB', 'Du premier tag au projet final', 'Chaque domaine part des fondamentaux et vous emmène vers une réalisation concrète. Votre progression est sauvegardée dans ce navigateur.'));
     var grid = el('div', 'course-grid');
-    K.forEach(function (key, index) {
+    WEB.forEach(function (key, index) {
       var domain = C[key], finished = count(key), pct = progress(key), feature = key === 'projet';
       var card = el('article', 'course-card reveal' + (index > 2 ? ' is-wide' : '') + (feature ? ' is-feature' : ''));
       card.style.setProperty('--accent', feature ? '#a4df39' : COLORS[key]); card.style.setProperty('--d', (index % 3) * 80 + 'ms');
@@ -228,7 +253,7 @@
     var aboutCard = el('aside', 'about-card reveal'), chip = el('span', 'logo-chip'), aboutLogo = el('img'); aboutLogo.src = 'logo.svg'; aboutLogo.alt = 'BoyDiop Technologie'; chip.appendChild(aboutLogo); aboutCard.appendChild(chip);
     aboutCard.appendChild(el('strong', '', 'Comprendre → pratiquer → construire'));
     aboutCard.appendChild(el('p', '', 'Une plateforme portée par BoyDiop Technologie. Chaque leçon vous invite à modifier, tester et expliquer ce que vous venez de découvrir.'));
-    var flow = el('div', 'flow'); K.forEach(function (key) { flow.appendChild(el('span', '', C[key].name)); }); aboutCard.appendChild(flow);
+    var flow = el('div', 'flow'); K.forEach(function (key) { flow.appendChild(el('span', '', short(key))); }); aboutCard.appendChild(flow);
     aboutGrid.appendChild(aboutCard); about.appendChild(aboutGrid); main.appendChild(about);
 
     var contact = el('section', 'home-section contact-section'); contact.id = 'contact';
@@ -266,7 +291,7 @@
     footerBrand.appendChild(el('strong', '', 'Atelier Web')); footerBrand.appendChild(el('p', '', 'Un parcours BoyDiop Technologie pour apprendre, pratiquer et construire le web.')); footerInner.appendChild(footerBrand);
     function column(title, items) { var col = el('nav', 'footer-col'); col.setAttribute('aria-label', title); col.appendChild(el('strong', 'footer-title', title)); items.forEach(function (item) { col.appendChild(item); }); return col; }
     var footerPhone = el('a', '', '77 970 87 82'), footerMail = el('a', '', 'samba.diop3@univ-thies.sn'); footerPhone.href = 'tel:+221779708782'; footerMail.href = 'mailto:samba.diop3@univ-thies.sn';
-    footerInner.appendChild(column('Parcours', K.map(function (key) { return link(key, C[key].name); })));
+    footerInner.appendChild(column('Parcours', K.map(function (key) { return link(key, short(key)); })));
     footerInner.appendChild(column('Plateforme', [sectionLink('parcours', 'Tous les parcours'), sectionLink('about', 'À propos'), sectionLink('contact', 'Contact')]));
     footerInner.appendChild(column('Contact', [footerPhone, footerMail]));
     var footerBottom = el('div', 'footer-bottom'), toTop = el('button', 'to-top', 'Retour en haut'); toTop.type = 'button'; toTop.appendChild(icon('up'));
@@ -276,26 +301,84 @@
     reveal(app);
   }
 
-  function lessonSection(container, section, index) { var box = el('section', 'lesson-section ' + (section.type || 'concept')); box.id = 'section-' + index; box.appendChild(el('h3', '', section.title)); (section.text || '').split('\n').forEach(function (line) { if (line.trim()) box.appendChild(el('p', '', line)); }); container.appendChild(box); }
+  var LANGS = { python: 'Python', bash: 'Terminal', html: 'Template HTML', css: 'CSS', json: 'JSON', csv: 'CSV', http: 'HTTP', text: 'Texte' };
+  function rich(node, text) { String(text).split('`').forEach(function (part, index) { node.appendChild(index % 2 ? el('code', 'inline-code', part) : document.createTextNode(part)); }); return node; }
+  function paragraphs(node, text) { (text || '').split('\n').forEach(function (line) { if (line.trim()) node.appendChild(rich(el('p'), line)); }); }
+  function itemList(items, ordered) {
+    var list = el(ordered ? 'ol' : 'ul', 'section-list');
+    items.forEach(function (item) {
+      var row = el('li');
+      if (Array.isArray(item) && /^(https?:\/\/|[\w-]+\.html)/.test(item[1])) { var anchor = el('a', '', item[0]); anchor.href = item[1]; if (/^https?:/.test(item[1])) { anchor.target = '_blank'; anchor.rel = 'noopener'; } row.appendChild(anchor); if (item[2]) rich(row, ' — ' + item[2]); }
+      else if (Array.isArray(item)) { row.appendChild(rich(el('strong'), item[0])); rich(row, ' : ' + item[1]); }
+      else rich(row, item);
+      list.appendChild(row);
+    });
+    return list;
+  }
+  function codeBlock(container, code, lang, output, file) {
+    var figure = el('figure', 'code-figure'), head = el('figcaption', 'code-head');
+    head.appendChild(el('span', 'code-lang', file || LANGS[lang || 'python'] || lang));
+    if (navigator.clipboard) { var copy = el('button', 'code-copy', 'Copier'); copy.type = 'button'; copy.onclick = function () { navigator.clipboard.writeText(code).then(function () { copy.textContent = 'Copié ✓'; setTimeout(function () { copy.textContent = 'Copier'; }, 1600); }); }; head.appendChild(copy); }
+    figure.appendChild(head); figure.appendChild(el('pre', 'code-block is-compact', code));
+    if (output !== undefined) { var result = el('div', 'code-output'); result.appendChild(el('span', 'code-output-label', 'Résultat affiché')); result.appendChild(el('pre', '', output)); figure.appendChild(result); }
+    container.appendChild(figure);
+  }
+  function sectionBody(node, part) {
+    paragraphs(node, part.text);
+    if (part.items) node.appendChild(itemList(part.items, part.ordered));
+    if (part.code) codeBlock(node, part.code, part.lang, part.output, part.file);
+    paragraphs(node, part.after);
+    (part.blocks || []).forEach(function (block) { sectionBody(node, block); });
+  }
+  function lessonSection(container, section, index) {
+    var box = el('section', 'lesson-section ' + (section.type || 'concept')); box.id = 'section-' + index; box.appendChild(el('h3', '', section.title));
+    sectionBody(box, section);
+    if (section.solution) { var details = el('details', 'solution'), body = el('div', 'solution-body'); details.appendChild(el('summary', '', section.solutionLabel || 'Voir la correction')); sectionBody(body, section.solution); details.appendChild(body); box.appendChild(details); }
+    container.appendChild(box);
+  }
   function lessonMeta(container, lesson) { var meta = el('div', 'lesson-meta'); meta.appendChild(el('span', 'meta-pill', 'Niveau : ' + (lesson.level || 'Débutant'))); meta.appendChild(el('span', 'meta-pill', 'Durée : ' + (lesson.duration || '45 min'))); if (lesson.next) meta.appendChild(el('span', 'meta-next', 'Ensuite : ' + lesson.next)); container.appendChild(meta); if (lesson.sections && lesson.sections.length) { var toc = el('nav', 'lesson-toc'); toc.setAttribute('aria-label', 'Sommaire de la leçon'); toc.appendChild(el('strong', '', 'Dans cette leçon')); lesson.sections.forEach(function (section, index) { var anchor = el('a', '', section.title); anchor.href = '#section-' + index; toc.appendChild(anchor); }); container.appendChild(toc); } }
-  function projectsBlock(app, domain) { if (!domain.projects || !domain.projects.length) return; var section = el('section', 'course-projects'); section.appendChild(sectionTitle('POUR ALLER PLUS LOIN', 'Projets pratiques et projets finaux', 'Des briefs progressifs pour mobiliser les notions et construire un portfolio.')); var list = el('div', 'projects'); domain.projects.forEach(function (project) { var details = el('details', 'project-card'); var summary = el('summary'); summary.appendChild(el('strong', '', project.title)); summary.appendChild(el('span', 'project-level', project.level)); details.appendChild(summary); function block(title, value) { var blockNode = el('div', 'project-block'); blockNode.appendChild(el('h4', '', title)); if (Array.isArray(value)) { var ul = el('ul'); value.forEach(function (item) { ul.appendChild(el('li', '', Array.isArray(item) ? item[0] + ' — ' + item[1] + ' %' : item)); }); blockNode.appendChild(ul); } else blockNode.appendChild(el('p', '', value)); details.appendChild(blockNode); } block('Présentation', project.presentation); block('Contexte / problème', project.context); block('Objectifs', project.objectives); block('Compétences mobilisées', project.skills); block('Prérequis', project.prerequisites); block('Matériel et outils', project.tools); block('Cahier des charges', project.brief); block('Étapes de réalisation', project.steps); block('Livrables attendus', project.deliverables); block('Critères de réussite', project.success); block('Grille d’évaluation', project.rubric); block('Erreurs à éviter', project.errors); block('Améliorations possibles', project.extensions); block('Solution de référence', project.reference); list.appendChild(details); }); section.appendChild(list); app.appendChild(section); }
+  function projectsBlock(app, domain) { if (!domain.projects || !domain.projects.length) return; var section = el('section', 'course-projects'); section.appendChild(sectionTitle('POUR ALLER PLUS LOIN', 'Projets pratiques et projets finaux', 'Des briefs progressifs pour mobiliser les notions et construire un portfolio.')); var list = el('div', 'projects'); domain.projects.forEach(function (project) { var details = el('details', 'project-card'); var summary = el('summary'); summary.appendChild(el('strong', '', project.title)); summary.appendChild(el('span', 'project-level', project.level)); details.appendChild(summary); function block(title, value) { if (value === undefined || value === null) return; var blockNode = el('div', 'project-block'); blockNode.appendChild(el('h4', '', title)); if (Array.isArray(value)) { var ul = el('ul'); value.forEach(function (item) { ul.appendChild(Array.isArray(item) ? el('li', '', item[0] + ' — ' + item[1] + ' %') : rich(el('li'), item)); }); blockNode.appendChild(ul); } else if (typeof value === 'object') sectionBody(blockNode, value); else blockNode.appendChild(rich(el('p'), value)); details.appendChild(blockNode); } block('Présentation', project.presentation); block('Contexte / problème', project.context); block('Objectifs', project.objectives); block('Compétences mobilisées', project.skills); block('Prérequis', project.prerequisites); block('Matériel et outils', project.tools); block('Cahier des charges', project.brief); block('Fonctionnalités attendues', project.features); block('Étapes de réalisation', project.steps); block('Livrables attendus', project.deliverables); block('Critères de réussite', project.success); block('Grille d’évaluation', project.rubric); block('Erreurs à éviter', project.errors); block('Améliorations possibles', project.extensions); block('Solution de référence', project.reference); list.appendChild(details); }); section.appendChild(list); app.appendChild(section); }
 
   function track(app, page) {
     var domain = C[page], index = K.indexOf(page), nextPage = K[index + 1] || 'index'; if (current[page] === undefined) { current[page] = domain.L.findIndex(function (_, lessonIndex) { return !done[page + lessonIndex]; }); if (current[page] < 0) current[page] = 0; }
     app.className = 'site course-page'; app.appendChild(top(page, false));
-    var courseHead = el('header', 'course-header'); courseHead.id = 'contenu'; courseHead.tabIndex = -1; var breadcrumb = el('div', 'breadcrumb'); breadcrumb.appendChild(link('index', 'Accueil')); breadcrumb.appendChild(el('span', '', '/')); breadcrumb.appendChild(el('span', '', domain.name)); courseHead.appendChild(breadcrumb); courseHead.appendChild(el('span', 'eyebrow', 'PARCOURS DE FORMATION')); courseHead.appendChild(el('h1', '', domain.name)); courseHead.appendChild(el('p', 'course-tagline', domain.tag.charAt(0).toUpperCase() + domain.tag.slice(1) + '.')); domain.intro.forEach(function (text) { courseHead.appendChild(el('p', 'course-intro', text)); }); courseHead.appendChild(el('p', 'course-goal', domain.goal)); var trackBar = el('div', 'course-progress'); var trackLine = el('div', 'progress-line'); var progressFill = el('i'); trackLine.appendChild(progressFill); trackBar.appendChild(trackLine); trackBar.appendChild(el('span', 'progress-label')); courseHead.appendChild(trackBar); app.appendChild(courseHead);
-    var layout = el('div', 'lesson-layout'); var aside = el('aside', 'lesson-sidebar'); aside.appendChild(el('p', 'sidebar-label', 'Votre parcours')); var lessonNav = el('nav', 'lesson-nav'); lessonNav.setAttribute('aria-label', 'Leçons du parcours'); aside.appendChild(lessonNav); var main = el('main', 'lesson-content'); layout.appendChild(aside); layout.appendChild(main); app.appendChild(layout);
+    var courseHead = el('header', 'course-header'); courseHead.id = 'contenu'; courseHead.tabIndex = -1; var breadcrumb = el('div', 'breadcrumb'); breadcrumb.appendChild(link('index', 'Accueil')); breadcrumb.appendChild(el('span', '', '/')); breadcrumb.appendChild(el('span', '', domain.name)); courseHead.appendChild(breadcrumb); courseHead.appendChild(el('span', 'eyebrow', 'PARCOURS DE FORMATION')); courseHead.appendChild(el('h1', '', domain.name)); courseHead.appendChild(el('p', 'course-tagline', domain.tag.charAt(0).toUpperCase() + domain.tag.slice(1) + '.')); domain.intro.forEach(function (text) { courseHead.appendChild(el('p', 'course-intro', text)); }); courseHead.appendChild(el('p', 'course-goal', domain.goal)); if (domain.facts) { var facts = el('dl', 'course-facts'); domain.facts.forEach(function (fact) { var item = el('div'); item.appendChild(el('dt', '', fact[0])); item.appendChild(el('dd', '', fact[1])); facts.appendChild(item); }); courseHead.appendChild(facts); } if (domain.notice) courseHead.appendChild(rich(el('p', 'course-notice'), domain.notice)); var trackBar = el('div', 'course-progress'); var trackLine = el('div', 'progress-line'); var progressFill = el('i'); trackLine.appendChild(progressFill); trackBar.appendChild(trackLine); trackBar.appendChild(el('span', 'progress-label')); courseHead.appendChild(trackBar); app.appendChild(courseHead);
+    var layout = el('div', 'lesson-layout'); layout.id = 'programme'; var aside = el('aside', 'lesson-sidebar'); aside.appendChild(el('p', 'sidebar-label', 'Votre parcours')); var lessonNav = el('nav', 'lesson-nav'); lessonNav.setAttribute('aria-label', 'Leçons du parcours'); aside.appendChild(lessonNav); var main = el('main', 'lesson-content'); layout.appendChild(aside); layout.appendChild(main); app.appendChild(layout);
     function draw() {
       var lessonIndex = current[page], lesson = domain.L[lessonIndex], id = page + lessonIndex, completed = count(page); progressFill.style.width = (completed / domain.L.length * 100) + '%'; courseHead.querySelector('.progress-label').textContent = completed + ' / ' + domain.L.length + ' leçons terminées'; lessonNav.textContent = '';
       domain.L.forEach(function (item, itemIndex) { var button = el('button', done[page + itemIndex] ? 'is-done' : ''); button.type = 'button'; button.setAttribute('aria-current', itemIndex === lessonIndex ? 'true' : 'false'); button.appendChild(el('span', 'lesson-number', String(itemIndex + 1).padStart(2, '0'))); button.appendChild(el('span', '', item.t)); button.onclick = function () { current[page] = itemIndex; draw(); main.scrollIntoView({ behavior: 'smooth', block: 'start' }); }; lessonNav.appendChild(button); });
-      main.textContent = ''; main.appendChild(el('span', 'lesson-kicker', 'LEÇON ' + String(lessonIndex + 1).padStart(2, '0') + ' / ' + domain.L.length)); main.appendChild(el('h2', '', lesson.t)); main.appendChild(el('p', 'lesson-intro', lesson.p)); lessonMeta(main, lesson); if (lesson.sections) lesson.sections.forEach(function (section, sectionIndex) { lessonSection(main, section, sectionIndex); }); main.appendChild(el('p', 'exercise-prompt', 'À vous de jouer : ' + lesson.a));
-      if (lesson.o !== undefined) { main.appendChild(el('div', 'content-label', 'CODE PHP À TESTER LOCALEMENT')); main.appendChild(el('pre', 'code-block', lesson.c)); main.appendChild(el('div', 'content-label', 'RÉSULTAT ATTENDU')); main.appendChild(el('div', 'expected-output', lesson.o)); } else { var codeHeader = el('div', 'content-label code-label'); codeHeader.appendChild(el('span', '', 'ÉDITEUR ET APERÇU')); var reset = el('button', 'reset-button', 'Réinitialiser'); reset.type = 'button'; codeHeader.appendChild(reset); main.appendChild(codeHeader); var split = el('div', 'code-split'), textarea = el('textarea', 'code-editor'), frame = el('iframe', 'code-preview'); textarea.value = lesson.c; textarea.spellcheck = false; textarea.setAttribute('aria-label', 'Code à modifier'); frame.title = 'Aperçu du résultat'; frame.setAttribute('sandbox', 'allow-scripts'); split.appendChild(textarea); split.appendChild(frame); main.appendChild(split); var timer; function run() { frame.srcdoc = textarea.value; } textarea.oninput = function () { clearTimeout(timer); timer = setTimeout(run, 350); }; reset.onclick = function () { textarea.value = lesson.c; run(); }; run(); }
+      main.textContent = ''; main.appendChild(el('span', 'lesson-kicker', 'LEÇON ' + String(lessonIndex + 1).padStart(2, '0') + ' / ' + domain.L.length)); main.appendChild(el('h2', '', lesson.t)); main.appendChild(el('p', 'lesson-intro', lesson.p)); lessonMeta(main, lesson); if (lesson.sections) lesson.sections.forEach(function (section, sectionIndex) { if (!section.end) lessonSection(main, section, sectionIndex); }); if (lesson.a) main.appendChild(rich(el('p', 'exercise-prompt'), 'À vous de jouer : ' + lesson.a));
+      if (lesson.o !== undefined) { main.appendChild(el('div', 'content-label', domain.runLabel || 'CODE PHP À TESTER LOCALEMENT')); main.appendChild(el('pre', 'code-block', lesson.c)); main.appendChild(el('div', 'content-label', 'RÉSULTAT ATTENDU')); main.appendChild(el('div', 'expected-output', lesson.o)); } else { var codeHeader = el('div', 'content-label code-label'); codeHeader.appendChild(el('span', '', 'ÉDITEUR ET APERÇU')); var reset = el('button', 'reset-button', 'Réinitialiser'); reset.type = 'button'; codeHeader.appendChild(reset); main.appendChild(codeHeader); var split = el('div', 'code-split'), textarea = el('textarea', 'code-editor'), frame = el('iframe', 'code-preview'); textarea.value = lesson.c; textarea.spellcheck = false; textarea.setAttribute('aria-label', 'Code à modifier'); frame.title = 'Aperçu du résultat'; frame.setAttribute('sandbox', 'allow-scripts'); split.appendChild(textarea); split.appendChild(frame); main.appendChild(split); var timer; function run() { frame.srcdoc = textarea.value; } textarea.oninput = function () { clearTimeout(timer); timer = setTimeout(run, 350); }; reset.onclick = function () { textarea.value = lesson.c; run(); }; run(); }
       if (lesson.x) { var explanation = el('section', 'code-explanation'); explanation.appendChild(el('h3', '', 'Le code expliqué, pas à pas')); lesson.x.forEach(function (row) { var line = el('div', 'explanation-row'); line.appendChild(el('code', '', row[0])); line.appendChild(el('p', '', row[1])); explanation.appendChild(line); }); main.appendChild(explanation); }
       var complete = el('button', 'complete-button', done[id] ? 'Leçon terminée ✓' : 'Marquer la leçon comme terminée'); complete.type = 'button'; complete.disabled = !!done[id]; complete.onclick = function () { done[id] = 1; save(); draw(); }; main.appendChild(complete);
-      if (lesson.z) { var quiz = el('section', 'quiz-box'); quiz.appendChild(el('span', 'eyebrow', 'VALIDATION')); quiz.appendChild(el('h3', '', 'Vérifiez que vous avez compris')); quiz.appendChild(el('p', '', lesson.z.q)); var status = el('p', 'quiz-status'); lesson.z.o.forEach(function (answer, answerIndex) { var answerButton = el('button', 'quiz-answer', answer); answerButton.type = 'button'; if (done[id]) { answerButton.disabled = true; if (answerIndex === lesson.z.a) answerButton.classList.add('is-correct'); } else answerButton.onclick = function () { if (answerIndex === lesson.z.a) { done[id] = 1; save(); draw(); } else { status.textContent = 'Pas tout à fait. Relisez la section concernée, puis réessayez.'; answerButton.disabled = true; answerButton.classList.add('is-wrong'); } }; quiz.appendChild(answerButton); }); if (done[id]) status.textContent = 'Correction : exact ! ' + lesson.z.e; quiz.appendChild(status); main.appendChild(quiz); }
+      if (lesson.z) {
+        var questions = Array.isArray(lesson.z) ? lesson.z : [lesson.z], solved = 0, quiz = el('section', 'quiz-box');
+        quiz.appendChild(el('span', 'eyebrow', 'VALIDATION')); quiz.appendChild(el('h3', '', 'Vérifiez que vous avez compris'));
+        if (questions.length > 1) quiz.appendChild(el('p', 'quiz-intro', 'Répondez correctement aux ' + questions.length + ' questions pour valider la leçon. Chaque bonne réponse affiche sa correction expliquée.'));
+        questions.forEach(function (question, questionIndex) {
+          var block = el('div', 'quiz-question'), status = el('p', 'quiz-status'), buttons = [];
+          block.appendChild(rich(el('p', 'quiz-q'), (questions.length > 1 ? (questionIndex + 1) + '. ' : '') + question.q));
+          question.o.forEach(function (answer, answerIndex) {
+            var answerButton = el('button', 'quiz-answer', answer); answerButton.type = 'button'; buttons.push(answerButton);
+            if (done[id]) { answerButton.disabled = true; if (answerIndex === question.a) answerButton.classList.add('is-correct'); }
+            else answerButton.onclick = function () {
+              if (answerIndex === question.a) {
+                buttons.forEach(function (button) { button.disabled = true; }); answerButton.classList.add('is-correct'); status.textContent = 'Exact ! ' + question.e;
+                solved += 1; if (solved === questions.length) { done[id] = 1; save(); draw(); }
+              } else { status.textContent = 'Pas tout à fait. Relisez la section concernée, puis réessayez.'; answerButton.disabled = true; answerButton.classList.add('is-wrong'); }
+            };
+            block.appendChild(answerButton);
+          });
+          if (done[id]) status.textContent = 'Correction : ' + question.e;
+          block.appendChild(status); quiz.appendChild(block);
+        });
+        main.appendChild(quiz);
+      }
+      if (lesson.sections) lesson.sections.forEach(function (section, sectionIndex) { if (section.end) lessonSection(main, section, sectionIndex); });
       var navigation = el('div', 'lesson-navigation'), previous = el('button', 'button button-secondary', '← Leçon précédente'), next = el('button', 'button button-primary', lessonIndex === domain.L.length - 1 ? 'Terminer le parcours →' : 'Leçon suivante →'); previous.type = next.type = 'button'; previous.disabled = lessonIndex === 0; next.disabled = !done[id]; previous.onclick = function () { current[page] = lessonIndex - 1; draw(); }; next.onclick = function () { if (lessonIndex === domain.L.length - 1) { if (SINGLE) go(nextPage); else location.href = nextPage + '.html'; } else { current[page] = lessonIndex + 1; draw(); } }; navigation.appendChild(previous); navigation.appendChild(next); main.appendChild(navigation);
     }
     draw(); projectsBlock(app, domain);
+    if (location.hash === '#programme') setTimeout(function () { layout.scrollIntoView(); }, 0);
   }
   function render() { clearInterval(heroTimer); if (revealObserver) revealObserver.disconnect(); var page = route; if (page !== 'index' && !C[page]) page = 'index'; var app = document.getElementById('app'); app.textContent = ''; if (page === 'index') home(app); else track(app, page); }
   render();

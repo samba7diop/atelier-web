@@ -215,10 +215,82 @@ Le projet a été vérifié dans un navigateur local :
 
 ## Déploiement
 
-Les pages HTML, JavaScript, CSS et le SVG peuvent être publiés sur GitHub Pages, Netlify, Vercel ou un serveur web statique.
+Les pages HTML, JavaScript, CSS et le SVG peuvent être publiés sur GitHub Pages, Netlify,render, Vercel ou un serveur web statique.
 
 Pour exécuter PHP en production, choisissez un hébergement compatible PHP et configurez le serveur correspondant.
 
 ## Licence
 
 Aucune licence n’est actuellement définie. Ajoutez un fichier `LICENSE` si vous souhaitez préciser les conditions de réutilisation et de distribution.
+
+## Mise à jour — parcours Python
+
+La plateforme inclut désormais deux parcours supplémentaires :
+
+- **Algorithmique et programmation avec Python** : parcours recommandé aux débutants, consacré à la logique algorithmique, aux variables, conditions, boucles, collections, fonctions, recherche, tri, fichiers, exceptions, programmation orientée objet et tests.
+- **Python pour le développement Web** : parcours Django consacré au Web, aux environnements virtuels, URLs, vues, templates, formulaires, ORM, bases de données, authentification, sécurité, API REST, tests et préparation au déploiement.
+
+Chaque parcours contient exactement 10 leçons et 5 projets pratiques. Les leçons incluent objectifs, prérequis, explications, définitions, exemples commentés, exercices guidés et autonomes, corrections, quiz, résumé, erreurs fréquentes, ressources et transition.
+
+Les projets Python sont décrits dans [python-data.js](./python-data.js) et couvrent : calculatrice scientifique, gestionnaire de notes, gestion de stock, jeu de logique, bibliothèque, site vitrine Django, blog, gestionnaire de tâches, gestion de produits et API REST.
+
+Nouveaux fichiers : [python.html](./python.html), [pythonweb.html](./pythonweb.html) et [python-data.js](./python-data.js). Les pages existantes chargent également `python-data.js` pour conserver une navigation et des compteurs cohérents.
+
+Le serveur Django `runserver` est documenté comme un outil de développement local uniquement. Les exemples Python/Django nécessitent un environnement Python séparé et ne sont pas exécutés directement dans le navigateur.
+
+### Vérifications de cette mise à jour
+
+- Accueil et deux pages Python ouverts dans le navigateur ;
+- 10 leçons et 5 projets confirmés pour chaque parcours ;
+- grilles des 10 projets vérifiées à 100 % chacune ;
+- liens internes vers `python.html` et `pythonweb.html` vérifiés ;
+- aucun problème VS Code signalé sur les nouveaux fichiers ;
+- aucun message d’erreur JavaScript bloquant lors du rechargement de l’accueil.
+
+## Audit du projet — améliorations recommandées
+
+L’audit du dépôt montre que le site est utilisable, mais quelques points méritent d’être traités pour fiabiliser la maintenance et les futures évolutions.
+
+### Priorité haute — synchroniser les sources Python et le vérificateur
+
+Le navigateur charge actuellement `python-data.js` pour alimenter `python.html`, `pythonweb.html` et l’accueil. Le fichier [tests/verifier-exemples-python.js](./tests/verifier-exemples-python.js) charge toutefois `python-algo.js` et `python-web.js`, alors que `python-web.js` n’existe pas dans le projet et que `python-algo.js` n’est pas chargé par les pages.
+
+Il faut choisir une seule source de vérité :
+
+1. soit adapter le vérificateur pour charger `python-data.js` et les types de sections réellement utilisés ;
+2. soit intégrer les fichiers `python-algo.js` et `python-web.js` dans les pages et supprimer la duplication avec `python-data.js`.
+
+Cette correction est la plus importante, car elle évite qu’un contenu différent soit affiché dans le site et contrôlé par les tests.
+
+### Priorité haute — automatiser la validation
+
+Ajouter un `package.json` avec une commande de test, puis exécuter le vérificateur à chaque modification et dans une intégration continue. Les contrôles utiles sont :
+
+- 10 leçons et au moins 5 projets par parcours ;
+- quiz valides et grilles totalisant 100 % ;
+- syntaxe des exemples Python ;
+- liens internes existants ;
+- absence d’erreur JavaScript au chargement.
+
+### Priorité moyenne — clarifier l’aperçu des exemples Python
+
+L’éditeur existant affiche les exemples Python dans une iframe prévue principalement pour HTML, CSS et JavaScript. Python ne peut pas être exécuté directement dans cette iframe. Il serait préférable de distinguer les leçons Python : afficher un bloc de code avec commande d’exécution, sortie attendue et bouton de copie, puis réserver l’aperçu live aux langages du navigateur.
+
+### Priorité moyenne — renforcer l’accessibilité et la qualité des liens
+
+Ajouter une vérification automatique des titres, attributs `alt`, ordre de tabulation, état du focus, liens internes et navigation au clavier. Les URLs des ressources externes doivent rester documentées et être vérifiées périodiquement.
+
+### Priorité moyenne — sécurité des aperçus
+
+L’aperçu utilise une iframe `sandbox`, ce qui est adapté aux exemples contrôlés. Si du code fourni par des utilisateurs est ajouté plus tard, il faudra conserver l’absence de `allow-same-origin`, ajouter une politique CSP et éviter d’injecter des données non fiables avec `innerHTML`.
+
+### Améliorations optionnelles
+
+- bouton pour réinitialiser la progression depuis l’interface ;
+- recherche ou filtre des parcours et des leçons ;
+- export/import de la progression locale ;
+- page de ressources générales Python/Django ;
+- tests end-to-end dans un navigateur ;
+- optimisation des gros fichiers de données si le nombre de parcours augmente.
+
+Ces éléments ne bloquent pas l’utilisation actuelle du site. La synchronisation du vérificateur et l’automatisation des tests sont en revanche recommandées avant une publication importante.
